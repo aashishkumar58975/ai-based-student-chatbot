@@ -9,7 +9,8 @@ const STORAGE_KEY = "studs-help-chats";
 
 function loadChats(): Chat[] {
   try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+    return Array.isArray(data) ? data : [];
   } catch {
     return [];
   }
@@ -23,8 +24,19 @@ export default function App() {
   const [menuOpen, setMenuOpen] = useState(false);
 
   useEffect(() => {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(chats));
+    } catch {
+      /* storage full or unavailable: keep chatting in memory */
+    }
   }, [chats]);
+
+  useEffect(() => {
+    if (!menuOpen) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setMenuOpen(false);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [menuOpen]);
 
   const active = chats.find((c) => c.id === activeId) || null;
   const messages = active?.messages ?? [];
@@ -72,31 +84,42 @@ export default function App() {
 
   return (
     <div className="app">
-      <Sidebar
-        chats={chats}
-        activeId={activeId}
-        view={view}
-        open={menuOpen}
-        onNew={() => go(null)}
-        onSelect={(id) => go(id)}
-        onDelete={deleteChat}
-        onAbout={() => go(activeId, "about")}
-      />
-      {menuOpen && <div className="backdrop" onClick={() => setMenuOpen(false)} />}
-      <main className="main">
-        <header className="header">
-          <button className="menu-btn" onClick={() => setMenuOpen(true)} aria-label="Open menu">☰</button>
-          <div>
-            <h1>STUDS-HELP AI</h1>
-            <p>Your simple AI academic assistant</p>
-          </div>
-        </header>
-        {view === "about" ? (
-          <AboutMe />
-        ) : (
-          <ChatWindow messages={messages} loading={loading} onSend={handleSend} />
-        )}
-      </main>
+      <header className="nav">
+        <div className="nav-inner">
+          <button type="button" className="brand" onClick={() => go(null)} aria-label="STUDS-HELP AI, start a new chat">
+            STUDS-HELP AI
+          </button>
+          <nav className="nav-links" aria-label="Primary">
+            <button type="button" className={view === "chat" ? "current" : ""} aria-current={view === "chat" ? "page" : undefined} onClick={() => go(activeId)}>Chat</button>
+            <button type="button" className={view === "about" ? "current" : ""} aria-current={view === "about" ? "page" : undefined} onClick={() => go(activeId, "about")}>About</button>
+            <button type="button" className="pill-btn" onClick={() => go(null)}>New chat</button>
+          </nav>
+          <button type="button" className="menu-btn" onClick={() => setMenuOpen(true)} aria-label="Open menu" aria-expanded={menuOpen}>
+            Menu
+          </button>
+        </div>
+      </header>
+      {menuOpen && <div className="backdrop" onClick={() => setMenuOpen(false)} aria-hidden="true" />}
+      <div className="workspace">
+        <Sidebar
+          chats={chats}
+          activeId={activeId}
+          view={view}
+          open={menuOpen}
+          onNew={() => go(null)}
+          onSelect={(id) => go(id)}
+          onDelete={deleteChat}
+          onAbout={() => go(activeId, "about")}
+          onClose={() => setMenuOpen(false)}
+        />
+        <main className="main">
+          {view === "about" ? (
+            <AboutMe />
+          ) : (
+            <ChatWindow messages={messages} loading={loading} onSend={handleSend} />
+          )}
+        </main>
+      </div>
     </div>
   );
 }

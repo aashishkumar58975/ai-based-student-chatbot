@@ -8,9 +8,10 @@ export default function AboutMe() {
   ];
   return (
     <div className="about">
-      <div className="card">
-        <h2>About Me</h2>
-        <dl>
+      <div className="about-inner">
+        <h2>About</h2>
+        <p className="about-sub">The developer behind STUDS-HELP AI</p>
+        <dl className="about-list">
           {rows.map(([k, v]) => (
             <div key={k}>
               <dt>{k}</dt>
